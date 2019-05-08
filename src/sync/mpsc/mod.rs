@@ -149,11 +149,15 @@ enum TrySendErrorKind<T> {
     Disconnected(T),
 }
 
+/// The error type returned from [`try_next`](Receiver::try_next).
+#[derive(Debug)]
+pub struct TryRecvError {
+    _inner: (),
+}
+
 impl<T> fmt::Debug for SendError<T> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_tuple("SendError")
-            .field(&"...")
-            .finish()
+        fmt.debug_tuple("SendError").field(&"...").finish()
     }
 }
 
@@ -860,6 +864,21 @@ impl<T> Receiver<T> {
         }
     }
 
+    /// Tries to receive the next message without notifying a context if empty.
+    ///
+    /// It is not recommended to call this function from inside of a future,
+    /// only when you've otherwise arranged to be notified when the channel is
+    /// no longer empty.
+    ///
+    /// This function will panic if called after `try_next` or `poll_next` has
+    /// returned None.
+    pub fn try_next(&mut self) -> Result<Option<T>, TryRecvError> {
+        match self.next_message() {
+            Async::Ready(msg) => Ok(msg),
+            Async::NotReady => Err(TryRecvError { _inner: () }),
+        }
+    }
+
     // Unpark a single task handle if there is one pending in the parked queue
     fn unpark_one(&mut self) {
         loop {
@@ -993,6 +1012,18 @@ impl<T> UnboundedReceiver<T> {
     /// still enabling the receiver to drain messages that are buffered.
     pub fn close(&mut self) {
         self.0.close();
+    }
+
+    /// Tries to receive the next message without notifying a context if empty.
+    ///
+    /// It is not recommended to call this function from inside of a future,
+    /// only when you've otherwise arranged to be notified when the channel is
+    /// no longer empty.
+    ///
+    /// This function will panic if called after `try_next` or `poll_next` has
+    /// returned None.
+    pub fn try_next(&mut self) -> Result<Option<T>, TryRecvError> {
+        self.0.try_next()
     }
 }
 
