@@ -98,13 +98,6 @@ if_std! {
     #[cfg(feature = "with-deprecated")]
     pub use self::join_all::JoinAll as Collect;
 
-    /// A type alias for `Box<Future + Send>`
-    #[doc(hidden)]
-    #[deprecated(note = "removed without replacement, recommended to use a \
-                         local extension trait or function if needed, more \
-                         details in https://github.com/rust-lang-nursery/futures-rs/issues/228")]
-    pub type BoxFuture<T, E> = ::std::boxed::Box<Future<Item = T, Error = E> + Send>;
-
     impl<F: ?Sized + Future> Future for ::std::boxed::Box<F> {
         type Item = F::Item;
         type Error = F::Error;
@@ -297,38 +290,6 @@ pub trait Future {
         where Self: Sized
     {
         ::executor::spawn(self).wait_future()
-    }
-
-    /// Convenience function for turning this future into a trait object which
-    /// is also `Send`.
-    ///
-    /// This simply avoids the need to write `Box::new` and can often help with
-    /// type inference as well by always returning a trait object. Note that
-    /// this method requires the `Send` bound and returns a `BoxFuture`, which
-    /// also encodes this. If you'd like to create a `Box<Future>` without the
-    /// `Send` bound, then the `Box::new` function can be used instead.
-    ///
-    /// This method is only available when the `use_std` feature of this
-    /// library is activated, and it is activated by default.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use futures::prelude::*;
-    /// use futures::future::{BoxFuture, result};
-    ///
-    /// let a: BoxFuture<i32, i32> = result(Ok(1)).boxed();
-    /// ```
-    #[cfg(feature = "use_std")]
-    #[doc(hidden)]
-    #[deprecated(note = "removed without replacement, recommended to use a \
-                         local extension trait or function if needed, more \
-                         details in https://github.com/rust-lang-nursery/futures-rs/issues/228")]
-    #[allow(deprecated)]
-    fn boxed(self) -> BoxFuture<Self::Item, Self::Error>
-        where Self: Sized + Send + 'static
-    {
-        ::std::boxed::Box::new(self)
     }
 
     /// Map this future's result to a different type, returning a new future of
